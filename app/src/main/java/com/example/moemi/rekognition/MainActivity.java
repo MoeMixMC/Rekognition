@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
+import android.net.Uri;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -42,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     ShowCamera showCamera;
 
     AmazonRekognitionClient rekognitionClient;
-    DetectTextResult results;
     AmazonS3Client s3;
     TransferUtility transferUtility;
 
@@ -93,28 +93,37 @@ public class MainActivity extends AppCompatActivity {
 
     Camera.PictureCallback mPictureCallback = new Camera.PictureCallback(){
         @Override
-        public void onPictureTaken(final byte[] bytes, Camera camera) {
-            new Thread(){
-                @Override
-                public void run(){
-                    ArrayList<String> detectedTextList = new ArrayList<>();
-
-                    results = rekognitionClient.detectText(new DetectTextRequest().withImage(new Image().withBytes(ByteBuffer.wrap(bytes))));
-
-                    for(TextDetection detectedText : results.getTextDetections()){
-                        detectedTextList.add(detectedText.getDetectedText());
-                    }
-                    Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
-                    intent.putStringArrayListExtra("results", detectedTextList);
-                    startActivity(intent);
-                }
-            }.start();
+        public void onPictureTaken(final byte[] bytes, final Camera camera) {
+            Capture capture = new Capture(camera, bytes, rekognitionClient);
+            Intent intent = new Intent(getApplicationContext(), ResultsActivity.class);
+            startActivity(intent);
         }
     };
 
     public void captureImage(View v){
         if(camera != null){
             camera.takePicture(null,null, mPictureCallback);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case 50: {
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //If user presses allow
+                    Toast.makeText(getApplicationContext(), "Permission granted!", Toast.LENGTH_SHORT).show();
+                    camera = camera.open();
+                    showCamera = new ShowCamera(this, camera);
+                    frameLayout.addView(showCamera);
+                } else {
+                    //If user presses deny
+                    Toast.makeText(getApplicationContext(), "You must grant this app permission to use your fucking camera idiot.", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            }
         }
     }
 

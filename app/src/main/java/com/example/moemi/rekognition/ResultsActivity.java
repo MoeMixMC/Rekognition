@@ -6,6 +6,12 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 
+import com.amazonaws.services.rekognition.model.DetectTextRequest;
+import com.amazonaws.services.rekognition.model.DetectTextResult;
+import com.amazonaws.services.rekognition.model.Image;
+import com.amazonaws.services.rekognition.model.TextDetection;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class ResultsActivity extends AppCompatActivity {
@@ -16,16 +22,20 @@ public class ResultsActivity extends AppCompatActivity {
 
     private LayoutInflater layoutInflater;
 
-    public ArrayList<String> results = new ArrayList<>();
+    public ArrayList<String> lineResults = new ArrayList<>();
+    private Capture capture = Capture.getCapture();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_results);
 
-        for(String string : getIntent().getStringArrayListExtra("results")){
-            results.add(string);
-        }
+        new Thread(){
+            @Override
+            public void run(){
+                printLines();
+            }
+        }.start();
 
         layoutInflater = getLayoutInflater();
 
@@ -35,7 +45,16 @@ public class ResultsActivity extends AppCompatActivity {
 
         rootRecyclerView.setLayoutManager(rootRecyclerViewLayoutManager);
 
-        rootRecyclerViewAdapter = new RootRecyclerViewAdapter(results, layoutInflater);
-        rootRecyclerView.setAdapter(rootRecyclerViewAdapter);
+        // Getting the new information
+        // TODO idk if i wanna implement this...
+
+    }
+
+    public void printLines(){
+        for(TextDetection line : ResultsManager.getLines(capture)){
+            lineResults.add(line.getDetectedText());
+            rootRecyclerViewAdapter = new RootRecyclerViewAdapter(lineResults, layoutInflater);
+            rootRecyclerView.setAdapter(rootRecyclerViewAdapter);
+        }
     }
 }
