@@ -3,17 +3,11 @@ package com.example.moemi.rekognition;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
-import android.view.Window;
-
-import com.amazonaws.services.rekognition.model.DetectTextRequest;
-import com.amazonaws.services.rekognition.model.DetectTextResult;
-import com.amazonaws.services.rekognition.model.Image;
 import com.amazonaws.services.rekognition.model.TextDetection;
-
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class ResultsActivity extends AppCompatActivity {
@@ -25,12 +19,14 @@ public class ResultsActivity extends AppCompatActivity {
     private LayoutInflater layoutInflater;
 
     public ArrayList<String> lineResults = new ArrayList<>();
+
+    public ArrayList<String> itemPrices = new ArrayList<>();
+
     private Capture capture = Capture.getCapture();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_PROGRESS);
         setContentView(R.layout.activity_results);
 
         layoutInflater = getLayoutInflater();
@@ -55,6 +51,11 @@ public class ResultsActivity extends AppCompatActivity {
         }
     }
 
+    public static boolean isNumeric(String str)
+    {
+        return str.matches("-?\\d+(\\.\\d+)?");  //match a number with optional '-' and decimal.
+    }
+
     class AsyncResultsGetter extends AsyncTask<Void, Void, Void>{
 
         @Override
@@ -70,8 +71,20 @@ public class ResultsActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Void aVoid) {
-            rootRecyclerViewAdapter = new RootRecyclerViewAdapter(lineResults, layoutInflater);
+            for(String line : lineResults){
+                if(isNumeric(line)){
+                    itemPrices.add(line);
+                }
+            }
+            for(String item : itemPrices){
+                lineResults.remove(item);
+            }
+            rootRecyclerViewAdapter = new RootRecyclerViewAdapter(lineResults, itemPrices, layoutInflater);
             rootRecyclerView.setAdapter(rootRecyclerViewAdapter);
+            
+            DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(rootRecyclerView.getContext(),
+                    getResources().getConfiguration().orientation);
+            rootRecyclerView.addItemDecoration(dividerItemDecoration);
         }
 
         @Override
